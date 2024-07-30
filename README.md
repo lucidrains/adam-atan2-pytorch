@@ -2,7 +2,7 @@
 
 Implementation of the proposed <a href="https://arxiv.org/abs/2407.05872">Adam-atan2</a> optimizer in Pytorch
 
-A multi-million dollar paper out of google deepmind basically proposes a small change to Adam (using `atan2`) for greater stability
+A multi-million dollar paper out of google deepmind basically proposes a small change to Adam update rule (using `atan2`) for greater stability
 
 ## Install
 
