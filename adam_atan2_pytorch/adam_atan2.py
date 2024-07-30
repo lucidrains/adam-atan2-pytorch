@@ -19,7 +19,7 @@ class AdamAtan2(Optimizer):
         lr = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
-        a = 1.,
+        a = 1.27,
         b = 1.
     ):
         assert lr > 0.
