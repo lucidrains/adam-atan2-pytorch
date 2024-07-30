@@ -1,4 +1,4 @@
-## Adam-atan2 - Pytorch (wip)
+## Adam-atan2 - Pytorch
 
 Implementation of the proposed <a href="https://arxiv.org/abs/2407.05872">Adam-atan2</a> optimizer in Pytorch
 
@@ -38,6 +38,10 @@ for _ in range(100):
   opt.zero_grad()
 
 ```
+
+## Todo
+
+ - [ ] foreach version
 
 ## Citations
 
