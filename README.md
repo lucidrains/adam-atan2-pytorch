@@ -4,6 +4,41 @@ Implementation of the proposed <a href="https://arxiv.org/abs/2407.05872">Adam-a
 
 A multi-million dollar paper out of google deepmind basically proposes a small change to Adam (using `atan2`) for greater stability
 
+## Install
+
+```bash
+$ pip install adam-atan2-pytorch
+```
+
+## Usage
+
+```python
+# toy model
+
+import torch
+from torch import nn
+
+model = nn.Linear(10, 1)
+
+# import AdamAtan2 and instantiate with parameters
+
+from adam_atan2_pytorch import AdamAtan2
+
+opt = AdamAtan2(model.parameters(), lr = 1e-4)
+
+# forward and backwards
+
+for _ in range(100):
+  loss = model(torch.randn(10))
+  loss.backward()
+
+  # optimizer step
+
+  opt.step()
+  opt.zero_grad()
+
+```
+
 ## Citations
 
 ```bibtex
