@@ -83,11 +83,11 @@ class AdamAtan2(Optimizer):
                 exp_avg_sq.lerp_(grad * grad, 1. - beta2)
 
                 # the following line is the proposed change to the update rule
-                # using atan2 instead of a division with epsilons - they also suggest hyperparameters `a` and `b` should be explored beyond its default of 1.
+                # using atan2 instead of a division with epsilon in denominator
 
-                update = a * atan2(exp_avg / bias_correct1, b * sqrt(exp_avg_sq / bias_correct2))
+                update = atan2(exp_avg / bias_correct1, b * sqrt(exp_avg_sq / bias_correct2))
 
-                p.add_(update, alpha = -lr)
+                p.add_(update, alpha = -lr * a)
 
                 # increment steps
 

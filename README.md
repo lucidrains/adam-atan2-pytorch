@@ -1,8 +1,10 @@
+<img src="./adam-atan2.png" width="400px"></img>
+
 ## Adam-atan2 - Pytorch
 
 Implementation of the proposed <a href="https://arxiv.org/abs/2407.05872">Adam-atan2</a> optimizer in Pytorch
 
-A multi-million dollar paper out of google deepmind basically proposes a small change to Adam update rule (using `atan2`) for greater stability
+A multi-million dollar paper out of google deepmind proposes a small change to Adam update rule (using `atan2`) to remove the epsilon altogether for numerical stability and scale invariance
 
 ## Install
 
