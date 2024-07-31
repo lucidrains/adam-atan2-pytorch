@@ -63,6 +63,7 @@ class AdamAtan2(Optimizer):
         self,
         closure: Callable | None = None
     ):
+        init_lr = self._init_lr
 
         loss = None
         if exists(closure):
@@ -71,16 +72,19 @@ class AdamAtan2(Optimizer):
 
         for group in self.param_groups:
 
+            wd, lr, beta1, beta2, a, b = group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b']
+
             # accumulate List[Tensor] for foreach inplace updates
 
             params = []
             grads = []
+            grad_squared = []
             exp_avgs = []
             exp_avg_sqs = []
 
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
+                grad, state = p.grad, self.state[p]
 
                 # decoupled weight decay
 
@@ -109,6 +113,7 @@ class AdamAtan2(Optimizer):
 
                 params.append(p)
                 grads.append(grad)
+                grad_squared.append(grad * grad)
                 exp_avgs.append(exp_avg)
                 exp_avg_sqs.append(exp_avg_sq)
 
@@ -123,9 +128,7 @@ class AdamAtan2(Optimizer):
             # decay running averages
 
             torch._foreach_lerp_(exp_avgs, grads, 1. - beta1)
-
-            torch._foreach_mul_(grads, grads)
-            torch._foreach_lerp_(exp_avg_sqs, grads, 1. - beta2) # grads is grad squared now
+            torch._foreach_lerp_(exp_avg_sqs, grad_squared, 1. - beta2) # grads is grad squared now
 
             # clone for update
 
