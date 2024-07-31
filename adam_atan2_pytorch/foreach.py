@@ -70,6 +70,14 @@ class AdamAtan2(Optimizer):
                 loss = closure()
 
         for group in self.param_groups:
+
+            # accumulate List[Tensor] for foreach inplace updates
+
+            params = []
+            grads = []
+            exp_avgs = []
+            exp_avg_sqs = []
+
             for p in filter(lambda p: exists(p.grad), group['params']):
 
                 grad, lr, wd, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
@@ -78,13 +86,6 @@ class AdamAtan2(Optimizer):
 
                 if wd > 0.:
                     wd /= init_lr
-
-                # accumulate List[Tensor] for foreach inplace updates
-
-                params = []
-                grads = []
-                exp_avgs = []
-                exp_avg_sqs = []
 
                 # init state if needed
 
