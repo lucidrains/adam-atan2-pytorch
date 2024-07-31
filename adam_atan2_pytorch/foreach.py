@@ -38,7 +38,7 @@ class AdamAtan2(Optimizer):
         assert lr > 0.
         assert all([0. <= beta <= 1. for beta in betas])
         assert weight_decay >= 0.
-        assert all([hasattr(torch, f'_foreach_{attr}_') for attr in ('mul', 'add', 'sign', 'lerp')]), 'this version of torch does not have the prerequisite foreach functions'
+        assert all([hasattr(torch, f'_foreach_{attr}_') for attr in ('mul', 'add', 'lerp', 'sqrt')]), 'this version of torch does not have the prerequisite foreach functions'
 
         self._init_lr = lr
 
