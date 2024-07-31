@@ -15,10 +15,10 @@ $ pip install adam-atan2-pytorch
 ## Usage
 
 ```python
-# toy model
-
 import torch
 from torch import nn
+
+# toy model
 
 model = nn.Linear(10, 1)
 
@@ -38,12 +38,7 @@ for _ in range(100):
 
   opt.step()
   opt.zero_grad()
-
 ```
-
-## Todo
-
- - [ ] foreach version
 
 ## Citations
 
