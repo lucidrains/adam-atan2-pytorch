@@ -19,6 +19,7 @@ class AdamAtan2(Optimizer):
         lr = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
+        decoupled_wd = False,
         a = 1.27,
         b = 1.
     ):
@@ -27,6 +28,7 @@ class AdamAtan2(Optimizer):
         assert weight_decay >= 0.
 
         self._init_lr = lr
+        self.decoupled_wd = decoupled_wd
 
         defaults = dict(
             lr = lr,
@@ -54,7 +56,12 @@ class AdamAtan2(Optimizer):
 
                 grad, lr, wd, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
 
-                # decoupled weight decay
+                # maybe decoupled weight decay
+
+                if self.decoupled_wd:
+                    wd /= init_lr
+
+                # weight decay
 
                 if wd > 0.:
                     p.mul_(1. - lr / init_lr * wd)

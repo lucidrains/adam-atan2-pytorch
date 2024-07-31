@@ -31,6 +31,7 @@ class AdamAtan2(Optimizer):
         lr = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
+        decoupled_wd = False,
         a = 1.27,
         b = 1.,
         foreach_atan2_fn: Callable | None = None
@@ -41,6 +42,7 @@ class AdamAtan2(Optimizer):
         assert all([hasattr(torch, f'_foreach_{attr}_') for attr in ('mul', 'add', 'lerp', 'sqrt')]), 'this version of torch does not have the prerequisite foreach functions'
 
         self._init_lr = lr
+        self.decoupled_wd = decoupled_wd
 
         self._foreach_atan2_ = default(
             foreach_atan2_fn,
@@ -74,6 +76,8 @@ class AdamAtan2(Optimizer):
 
             wd, lr, beta1, beta2, a, b = group['weight_decay'], group['lr'], *group['betas'], group['a'], group['b']
 
+            has_weight_decay = wd > 0
+
             # accumulate List[Tensor] for foreach inplace updates
 
             params = []
@@ -86,9 +90,9 @@ class AdamAtan2(Optimizer):
 
                 grad, state = p.grad, self.state[p]
 
-                # decoupled weight decay
+                # maybe decoupled weight decay
 
-                if wd > 0.:
+                if self.decoupled_wd and has_weight_decay:
                     wd /= init_lr
 
                 # init state if needed
@@ -123,7 +127,7 @@ class AdamAtan2(Optimizer):
 
             # weight decay
 
-            if wd > 0.:
+            if has_weight_decay:
                 torch._foreach_mul_(params, 1. - lr * wd)
 
             # decay running averages
