@@ -86,7 +86,7 @@ class AdamAtan2(Optimizer):
                 # using atan2 instead of a division with epsilon in denominator
                 # a * atan2(exp_avg / bias_correct1, b * sqrt(exp_avg_sq / bias_correct2))
 
-                den = exp_avg_sq.mul_(b * b / bias_correct2).sqrt_()
+                den = exp_avg_sq.clone().mul_(b * b / bias_correct2).sqrt_()
                 update = exp_avg.clone().mul_(1. / bias_correct1).atan2_(den)
 
                 # update parameters
