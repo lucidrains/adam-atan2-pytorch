@@ -128,7 +128,7 @@ class AdamAtan2(Optimizer):
             # decay running averages
 
             torch._foreach_lerp_(exp_avgs, grads, 1. - beta1)
-            torch._foreach_lerp_(exp_avg_sqs, grad_squared, 1. - beta2) # grads is grad squared now
+            torch._foreach_lerp_(exp_avg_sqs, grad_squared, 1. - beta2)
 
             # clone for update
 
