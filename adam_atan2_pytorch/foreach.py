@@ -72,7 +72,7 @@ class AdamAtan2(Optimizer):
 
         for group in self.param_groups:
 
-            wd, lr, beta1, beta2, a, b = group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b']
+            wd, lr, beta1, beta2, a, b = group['weight_decay'], group['lr'], *group['betas'], group['a'], group['b']
 
             # accumulate List[Tensor] for foreach inplace updates
 
@@ -123,7 +123,8 @@ class AdamAtan2(Optimizer):
 
             # weight decay
 
-            torch._foreach_mul_(params, 1. - lr * wd)
+            if wd > 0.:
+                torch._foreach_mul_(params, 1. - lr * wd)
 
             # decay running averages
 
