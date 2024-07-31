@@ -138,9 +138,6 @@ class AdamAtan2(Optimizer):
             torch._foreach_mul_(den, b * b / bias_correct2)
             torch._foreach_sqrt_(den)
 
-            # the following line is the proposed change to the update rule
-            # using atan2 instead of a division with epsilon in denominator
-
             self._foreach_atan2_(updates, den)
 
             # update params
