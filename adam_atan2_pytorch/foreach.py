@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, List, Callable
+from typing import Callable
 
 import torch
 from torch import atan2, sqrt, Tensor
@@ -18,7 +18,7 @@ def default(*args):
 
 # slow foreach atan2
 
-def slow_foreach_atan2_(nums: List[Tensor], dens: List[Tensor]):
+def slow_foreach_atan2_(nums: list[Tensor], dens: list[Tensor]):
     for num, den, in zip(nums, dens):
         num.atan2_(den)
 
@@ -29,8 +29,9 @@ class AdamAtan2(Optimizer):
         self,
         params,
         lr = 1e-4,
-        betas: Tuple[float, float] = (0.9, 0.99),
+        betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
+        regen_reg_rate = 0.,
         decoupled_wd = False,
         a = 1.27,
         b = 1.,
@@ -39,6 +40,8 @@ class AdamAtan2(Optimizer):
         assert lr > 0.
         assert all([0. <= beta <= 1. for beta in betas])
         assert weight_decay >= 0.
+        assert regen_reg_rate >= 0.
+        assert not (weight_decay > 0. and regen_reg_rate > 0.)
         assert all([hasattr(torch, f'_foreach_{attr}_') for attr in ('mul', 'add', 'lerp', 'sqrt')]), 'this version of torch does not have the prerequisite foreach functions'
 
         self._init_lr = lr
@@ -55,7 +58,8 @@ class AdamAtan2(Optimizer):
             betas = betas,
             a = a,
             b = b,
-            weight_decay = weight_decay
+            weight_decay = weight_decay,
+            regen_reg_rate = regen_reg_rate
         )
 
         super().__init__(params, defaults)
@@ -74,13 +78,16 @@ class AdamAtan2(Optimizer):
 
         for group in self.param_groups:
 
-            wd, lr, beta1, beta2, a, b = group['weight_decay'], group['lr'], *group['betas'], group['a'], group['b']
+            wd, regen_rate, lr, beta1, beta2, a, b = group['weight_decay'], group['regen_reg_rate'], group['lr'], *group['betas'], group['a'], group['b']
 
             has_weight_decay = wd > 0
+
+            has_regenerative_reg = regen_rate > 0
 
             # accumulate List[Tensor] for foreach inplace updates
 
             params = []
+            params_init = []
             grads = []
             grad_squared = []
             exp_avgs = []
@@ -101,10 +108,11 @@ class AdamAtan2(Optimizer):
                     state['steps'] = 0
                     state['exp_avg'] = torch.zeros_like(grad)
                     state['exp_avg_sq'] = torch.zeros_like(grad)
+                    state['param_init'] = p.clone()
 
                 # get some of the states
 
-                exp_avg, exp_avg_sq, steps = state['exp_avg'], state['exp_avg_sq'], state['steps']
+                exp_avg, exp_avg_sq, param_init, steps = state['exp_avg'], state['exp_avg_sq'], state['param_init'], state['steps']
 
                 steps += 1
 
@@ -116,6 +124,7 @@ class AdamAtan2(Optimizer):
                 # append to list
 
                 params.append(p)
+                params_init.append(param_init)
                 grads.append(grad)
                 grad_squared.append(grad * grad)
                 exp_avgs.append(exp_avg)
@@ -129,6 +138,11 @@ class AdamAtan2(Optimizer):
 
             if has_weight_decay:
                 torch._foreach_mul_(params, 1. - lr * wd)
+
+            # regenerative regularization
+
+            if has_regenerative_reg:
+                torch._foreach_lerp_(params, params_init, lr / init_lr * regen_rate)
 
             # decay running averages
 
