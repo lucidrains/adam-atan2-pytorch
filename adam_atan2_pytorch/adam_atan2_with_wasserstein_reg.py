@@ -20,7 +20,6 @@ class AdamAtan2(Optimizer):
         betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
         regen_reg_rate = 0.,
-        wasserstein_reg = False,
         decoupled_wd = False,
         a = 1.27,
         b = 1.
@@ -41,7 +40,6 @@ class AdamAtan2(Optimizer):
             b = b,
             weight_decay = weight_decay,
             regen_reg_rate = regen_reg_rate,
-            wasserstein_reg = wasserstein_reg,
         )
 
         super().__init__(params, defaults)
@@ -60,7 +58,7 @@ class AdamAtan2(Optimizer):
         for group in self.param_groups:
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, regen_rate, wasserstein_reg, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['wasserstein_reg'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
+                grad, lr, wd, regen_rate, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
 
                 # maybe decoupled weight decay
 
@@ -76,7 +74,18 @@ class AdamAtan2(Optimizer):
 
                 if regen_rate > 0. and 'param_init' in state:
                     param_init = state['param_init']
-                    p.lerp_(param_init, lr / init_lr * regen_rate)
+
+                    shape = param_init.shape
+
+                    # wasserstein compares using ordered statistics, iiuc
+
+                    indices = p.flatten().sort(dim = -1).indices
+                    indices = indices.argsort(dim = -1)
+
+                    target = param_init.flatten()[indices]
+                    target.reshape(shape)
+
+                    p.lerp_(target, lr / init_lr * regen_rate)
 
                 # init state if needed
 
@@ -86,6 +95,10 @@ class AdamAtan2(Optimizer):
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
                     if regen_rate > 0.:
+                        shape = p.shape
+                        p = p.flatten().sort(dim = -1).values                        
+                        p = p.reshape(shape)
+
                         state['param_init'] = p.clone()
 
                 # get some of the states

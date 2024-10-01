@@ -59,3 +59,14 @@ for _ in range(100):
     url     = {https://api.semanticscholar.org/CorpusID:261076021}
 }
 ```
+
+```bibtex
+@article{Lewandowski2024LearningCB,
+    title   = {Learning Continually by Spectral Regularization},
+    author  = {Alex Lewandowski and Saurabh Kumar and Dale Schuurmans and Andr'as Gyorgy and Marlos C. Machado},
+    journal = {ArXiv},
+    year    = {2024},
+    volume  = {abs/2406.06811},
+    url     = {https://api.semanticscholar.org/CorpusID:270380086}
+}
+```
