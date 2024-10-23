@@ -168,3 +168,5 @@ class AdamAtan2(Optimizer):
             torch._foreach_add_(params, updates, alpha = -lr * a)
 
         return loss
+
+Adam = AdamAtan2

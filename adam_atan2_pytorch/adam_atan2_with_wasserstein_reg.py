@@ -137,3 +137,5 @@ class AdamAtan2(Optimizer):
                 state['steps'] = steps
 
         return loss
+
+Adam = AdamAtan2
