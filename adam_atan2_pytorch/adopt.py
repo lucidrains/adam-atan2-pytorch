@@ -16,7 +16,7 @@ class Adopt(Optimizer):
     """
     the proposed Adam substitute from University of Tokyo
 
-    Algorithm 2 in https://arxiv.org/abs/2411.02853
+    Algorithm 3 in https://arxiv.org/abs/2411.02853
     """
 
     def __init__(
@@ -74,7 +74,7 @@ class Adopt(Optimizer):
 
                 if len(state) == 0:
                     state['steps'] = 0
-                    state['m'] = torch.empty_like(grad)
+                    state['m'] = torch.zeros_like(grad)
                     state['v'] = grad * grad
 
                 # get some of the states
@@ -91,9 +91,16 @@ class Adopt(Optimizer):
 
                 grad_sq = grad * grad
 
-                next_m = grad.div(v.sqrt().clamp(min = eps)) # they claim that a max(value, eps) performs better than adding the epsilon
+                update = grad.div(v.sqrt().clamp(min = eps)) # they claim that a max(value, eps) performs better than adding the epsilon
 
-                m.lerp_(next_m, 1. - (beta1 * int(steps > 1)))
+                # clip with t ^ 0.25 as in Algorithm 3
+
+                clip_value = steps ** 0.25
+                update.clamp_(min = -clip_value, max = clip_value)
+
+                # update m
+
+                m.lerp_(update, 1. - beta1)
 
                 # then update parameters
 

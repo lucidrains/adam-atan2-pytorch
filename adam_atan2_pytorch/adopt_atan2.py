@@ -17,7 +17,7 @@ class AdoptAtan2(Optimizer):
     the proposed Adam substitute from University of Tokyo
     combined with the proposed atan2 method for ridding of the eps from Google
 
-    Algorithm 2 in https://arxiv.org/abs/2411.02853
+    Algorithm 3 in https://arxiv.org/abs/2411.02853
     """
 
     def __init__(
@@ -77,7 +77,7 @@ class AdoptAtan2(Optimizer):
 
                 if len(state) == 0:
                     state['steps'] = 0
-                    state['m'] = torch.empty_like(grad)
+                    state['m'] = torch.zeros_like(grad)
                     state['v'] = grad * grad
 
                 # get some of the states
@@ -96,7 +96,7 @@ class AdoptAtan2(Optimizer):
 
                 next_m = grad.atan2(b * v.sqrt())
 
-                m.lerp_(next_m, 1. - (beta1 * int(steps > 1)))
+                m.lerp_(next_m, 1. - beta1)
 
                 # then update parameters
 
