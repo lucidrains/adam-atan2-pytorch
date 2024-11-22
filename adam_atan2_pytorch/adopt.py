@@ -97,8 +97,7 @@ class Adopt(Optimizer):
 
                 next_m = grad.div(v.sqrt().clamp(min = eps)) # they claim that a max(value, eps) performs better than adding the epsilon
 
-                if steps > 1:
-                    m.lerp_(next_m, 1. - beta1)
+                m.lerp_(next_m, 1. - (beta1 * int(steps > 1)))
 
                 # then update parameters
 

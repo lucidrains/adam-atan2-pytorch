@@ -100,8 +100,7 @@ class AdoptAtan2(Optimizer):
 
                 next_m = grad.atan2(b * v.sqrt())
 
-                if steps > 1:
-                    m.lerp_(next_m, 1. - beta1)
+                m.lerp_(next_m, 1. - (beta1 * int(steps > 1)))
 
                 # then update parameters
 
