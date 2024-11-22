@@ -27,6 +27,7 @@ class AdoptAtan2(Optimizer):
         betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
         decoupled_wd = True,
+        clip_update = True,
         a = 1.27,
         b = 1.
     ):
@@ -43,6 +44,7 @@ class AdoptAtan2(Optimizer):
             a = a,
             b = b,
             weight_decay = weight_decay,
+            clip_update = clip_update
         )
 
         super().__init__(params, defaults)
@@ -61,7 +63,7 @@ class AdoptAtan2(Optimizer):
         for group in self.param_groups:
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
+                grad, lr, wd, beta1, beta2, clip, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], *group['betas'], group['clip_update'], group['a'], group['b'], self.state[p], self._init_lr
 
                 # maybe decoupled weight decay
 
@@ -94,9 +96,13 @@ class AdoptAtan2(Optimizer):
 
                 grad_sq = grad * grad
 
-                next_m = grad.atan2(b * v.sqrt())
+                update = grad.atan2(b * v.sqrt())
 
-                m.lerp_(next_m, 1. - beta1)
+                if clip:
+                    clip_value = steps ** 0.25
+                    update.clamp_(-clip_value, clip_value)
+
+                m.lerp_(update, 1. - beta1)
 
                 # then update parameters
 
