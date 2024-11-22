@@ -87,10 +87,6 @@ class Adopt(Optimizer):
                     state['steps'] += 1
                     continue
 
-                # logic
-
-                steps += 1
-
                 # calculate m
 
                 grad_sq = grad * grad
@@ -109,6 +105,6 @@ class Adopt(Optimizer):
 
                 # increment steps
 
-                state['steps'] = steps
+                state['steps'] += 1
 
         return loss
