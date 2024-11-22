@@ -23,7 +23,7 @@ class Adopt(Optimizer):
         self,
         params,
         lr = 1e-4,
-        betas: tuple[float, float] = (0.9, 0.9999),
+        betas: tuple[float, float] = (0.9, 0.99),
         eps = 1e-6,
         weight_decay = 0.,
         decoupled_wd = True

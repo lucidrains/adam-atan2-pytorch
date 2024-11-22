@@ -15,6 +15,7 @@ def exists(val):
 class AdoptAtan2(Optimizer):
     """
     the proposed Adam substitute from University of Tokyo
+    combined with the proposed atan2 method for ridding of the eps from Google
 
     Algorithm 2 in https://arxiv.org/abs/2411.02853
     """
@@ -23,7 +24,7 @@ class AdoptAtan2(Optimizer):
         self,
         params,
         lr = 1e-4,
-        betas: tuple[float, float] = (0.9, 0.9999),
+        betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
         decoupled_wd = True,
         a = 1.27,
