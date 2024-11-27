@@ -26,6 +26,7 @@ class AdoptAtan2(Optimizer):
         lr = 1e-4,
         betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
+        regen_reg_rate = 0.,
         decoupled_wd = True,
         a = 1.27,
         b = 1.
@@ -33,6 +34,7 @@ class AdoptAtan2(Optimizer):
         assert lr > 0.
         assert all([0. <= beta <= 1. for beta in betas])
         assert weight_decay >= 0.
+        assert not (weight_decay > 0. and regen_reg_rate > 0.)
 
         self._init_lr = lr
         self.decoupled_wd = decoupled_wd
@@ -43,6 +45,7 @@ class AdoptAtan2(Optimizer):
             a = a,
             b = b,
             weight_decay = weight_decay,
+            regen_reg_rate = regen_reg_rate
         )
 
         super().__init__(params, defaults)
@@ -61,12 +64,18 @@ class AdoptAtan2(Optimizer):
         for group in self.param_groups:
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
+                grad, lr, wd, regen_rate, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
 
                 # maybe decoupled weight decay
 
                 if self.decoupled_wd:
                     wd /= init_lr
+
+                # regenerative regularization from Kumar et al. https://arxiv.org/abs/2308.11958
+
+                if regen_rate > 0. and 'param_init' in state:
+                    param_init = state['param_init']
+                    p.lerp_(param_init, lr / init_lr * regen_rate)
 
                 # weight decay
 
@@ -79,6 +88,9 @@ class AdoptAtan2(Optimizer):
                     state['steps'] = 0
                     state['m'] = torch.zeros_like(grad)
                     state['v'] = grad * grad
+
+                    if regen_rate > 0.:
+                        state['param_init'] = p.clone()
 
                 # get some of the states
 
