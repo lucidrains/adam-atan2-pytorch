@@ -28,6 +28,7 @@ class AdoptAtan2(Optimizer):
         weight_decay = 0.,
         regen_reg_rate = 0.,
         decoupled_wd = True,
+        cautious_factor = 1., # set to 0. for zeroing out any updates not in same direction as gradient as in https://arxiv.org/abs/2411.16085
         a = 1.27,
         b = 1.
     ):
@@ -45,7 +46,8 @@ class AdoptAtan2(Optimizer):
             a = a,
             b = b,
             weight_decay = weight_decay,
-            regen_reg_rate = regen_reg_rate
+            regen_reg_rate = regen_reg_rate,
+            cautious_factor = cautious_factor
         )
 
         super().__init__(params, defaults)
@@ -64,7 +66,7 @@ class AdoptAtan2(Optimizer):
         for group in self.param_groups:
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, regen_rate, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
+                grad, lr, wd, regen_rate, cautious_factor, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_factor'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
 
                 # maybe decoupled weight decay
 
@@ -110,9 +112,18 @@ class AdoptAtan2(Optimizer):
 
                 m.lerp_(update, 1. - beta1)
 
+                # maybe cautious update - algorithm 2 in https://arxiv.org/abs/2411.16085
+
+                scale = 1.
+
+                if cautious_factor < 1.:
+                    align_mask = (update * grad) > 0
+                    scale = torch.where(align_mask, torch.ones_like(grad), cautious_factor)
+                    scale /= scale.mean().clamp(min = 1e-5)
+
                 # then update parameters
 
-                p.add_(m, alpha = -lr * a)
+                p.add_(m * scale, alpha = -lr * a)
 
                 # update exp grad sq (v)
 
