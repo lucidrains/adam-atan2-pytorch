@@ -5,6 +5,8 @@ import torch
 from torch import atan2, sqrt
 from torch.optim.optimizer import Optimizer
 
+from einops import pack, unpack
+
 # functions
 
 def exists(val):
@@ -21,7 +23,8 @@ def newtonschulz5(
     eps = 1e-7,
     coefs = (3.4445, -4.7750, 2.0315)
 ):
-    if t.ndim <= 3:
+
+    if t.ndim > 3:
         return t
 
     shape = t.shape
