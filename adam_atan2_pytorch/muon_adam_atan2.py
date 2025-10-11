@@ -55,7 +55,7 @@ class MuonAdamAtan2(Optimizer):
         muon_params,
         params,
         lr = 1e-4,
-        muon_lr = None,
+        muon_lr = 1e-3,
         betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
         regen_reg_rate = 0.,
@@ -64,6 +64,7 @@ class MuonAdamAtan2(Optimizer):
         a = 1.27,
         b = 1.,
         muon_steps = 5,
+        muon_beta1 = 0.95,
         muon_newton_schulz5_coefs = (3.4445, -4.7750, 2.0315),
         muon_eps = 1e-7,
         remove_muon_params_from_params = True
@@ -82,9 +83,12 @@ class MuonAdamAtan2(Optimizer):
 
         self.decoupled_wd = decoupled_wd
 
+        beta1, beta2 = betas
+
         defaults = dict(
             lr = lr,
-            betas = betas,
+            beta1 = beta1,
+            beta2 = beta2,
             a = a,
             b = b,
             weight_decay = weight_decay,
@@ -101,7 +105,7 @@ class MuonAdamAtan2(Optimizer):
 
         param_groups = [
             dict(params = params, lr = lr),
-            dict(params = muon_params, lr = muon_lr, use_muon = True)
+            dict(params = muon_params, lr = muon_lr, beta1 = muon_beta1, use_muon = True)
         ]
 
         super().__init__(param_groups, defaults)
@@ -123,7 +127,7 @@ class MuonAdamAtan2(Optimizer):
 
                 use_muon = group['use_muon']
 
-                grad, lr, wd, regen_rate, cautious_factor, beta1, beta2, a, b, state, init_lr, init_muon_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_factor'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr, self._init_muon_lr
+                grad, lr, wd, regen_rate, cautious_factor, beta1, beta2, a, b, state, init_lr, init_muon_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_factor'], group['beta1'], group['beta2'], group['a'], group['b'], self.state[p], self._init_lr, self._init_muon_lr
 
                 param_init_lr = init_lr if not use_muon else init_muon_lr
 
