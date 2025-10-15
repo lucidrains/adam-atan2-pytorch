@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 from typing import Callable
 
 import torch
@@ -66,6 +67,7 @@ class MuonAdamAtan2(Optimizer):
         cautious_factor = 1., # set to 0. for zeroing out any updates not in same direction as gradient as in https://arxiv.org/abs/2411.16085
         a = 1.27,
         b = 1.,
+        muon_rms_factor = 0.2,
         muon_steps = 5,
         muon_beta1 = 0.95,
         muon_newton_schulz5_coefs = (3.4445, -4.7750, 2.0315),
@@ -101,6 +103,7 @@ class MuonAdamAtan2(Optimizer):
             muon_steps = muon_steps,
             muon_newton_schulz5_coefs = muon_newton_schulz5_coefs,
             muon_eps = muon_eps,
+            muon_rms_factor = muon_rms_factor,
         )
 
         if remove_muon_params_from_params:
@@ -108,7 +111,7 @@ class MuonAdamAtan2(Optimizer):
 
         param_groups = [
             dict(params = params, lr = lr),
-            dict(params = muon_params, lr = muon_lr, beta1 = muon_beta1, use_muon = True)
+            dict(params = muon_params, lr = muon_lr, beta1 = muon_beta1, rms_factor = muon_rms_factor, use_muon = True)
         ]
 
         super().__init__(param_groups, defaults)
@@ -133,6 +136,11 @@ class MuonAdamAtan2(Optimizer):
                 grad, lr, wd, regen_rate, cautious_factor, beta1, beta2, a, b, state, init_lr, init_muon_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_factor'], group['beta1'], group['beta2'], group['a'], group['b'], self.state[p], self._init_lr, self._init_muon_lr
 
                 param_init_lr = init_lr if not use_muon else init_muon_lr
+
+                # set lr scale to 1. if muon update
+
+                if use_muon:
+                    a = 1.
 
                 # maybe decoupled weight decay
 
@@ -193,7 +201,7 @@ class MuonAdamAtan2(Optimizer):
                     # maybe cautious update - algorithm 2 in https://arxiv.org/abs/2411.16085
                 else:
 
-                    muon_steps, muon_coefs, muon_eps = group['muon_steps'], group['muon_newton_schulz5_coefs'], group['muon_eps']
+                    muon_steps, muon_coefs, muon_eps, muon_rms_factor = group['muon_steps'], group['muon_newton_schulz5_coefs'], group['muon_eps'], group['muon_rms_factor']
 
                     # Muon from Keller Jordan
                     # https://kellerjordan.github.io/posts/muon/
@@ -204,6 +212,13 @@ class MuonAdamAtan2(Optimizer):
                         coefs = muon_coefs,
                         eps = muon_eps
                     )
+
+                    # incorporate the match adam RMS from Kimi team
+                    # https://kexue.fm/archives/11267
+
+                    muon_update_scale = math.sqrt(max(exp_avg.shape[-2:])) * muon_rms_factor
+
+                    update = update * muon_update_scale
 
                 if cautious_factor < 1.:
                     align_mask = (update * grad) > 0
