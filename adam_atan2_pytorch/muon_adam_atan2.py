@@ -59,7 +59,7 @@ class MuonAdamAtan2(Optimizer):
         muon_params,
         params,
         lr = 1e-4,
-        muon_lr = 1e-3,
+        muon_lr = None,
         betas: tuple[float, float] = (0.9, 0.99),
         weight_decay = 0.,
         regen_reg_rate = 0.,
