@@ -111,3 +111,15 @@ for _ in range(100):
     url     = {https://arxiv.org/abs/2507.20534}, 
 }
 ```
+
+```bibtex
+@misc{chen2026cautiousweightdecay,
+    title   = {Cautious Weight Decay}, 
+    author  = {Lizhang Chen and Jonathan Li and Kaizhao Liang and Baiyu Su and Cong Xie and Nuo Wang Pierse and Chen Liang and Ni Lao and Qiang Liu},
+    year    = {2026},
+    eprint  = {2510.12402},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.LG},
+    url     = {https://arxiv.org/abs/2510.12402}, 
+}
+```

@@ -1,6 +1,6 @@
 [project]
 name = "adam-atan2-pytorch"
-version = "0.2.4"
+version = "0.2.5"
 description = "Adam-atan2 for Pytorch"
 authors = [
     { name = "Phil Wang", email = "lucidrains@gmail.com" }
@@ -55,3 +55,11 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["adam_atan2_pytorch"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "adam_atan2_pytorch",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]

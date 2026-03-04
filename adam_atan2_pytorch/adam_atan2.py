@@ -21,6 +21,7 @@ class AdamAtan2(Optimizer):
         weight_decay = 0.,
         regen_reg_rate = 0.,
         decoupled_wd = False,
+        cautious_wd = False,
         cautious_factor = 1., # set to 0. for zeroing out any updates not in same direction as gradient as in https://arxiv.org/abs/2411.16085
         a = 1.27,
         b = 1.
@@ -41,11 +42,19 @@ class AdamAtan2(Optimizer):
             a = a,
             b = b,
             weight_decay = weight_decay,
+            cautious_wd = cautious_wd,
             regen_reg_rate = regen_reg_rate,
             cautious_factor = cautious_factor
         )
 
         super().__init__(params, defaults)
+
+        # independent of lr
+
+        if decoupled_wd:
+            for group in self.param_groups:
+                group['weight_decay'] /= lr
+                group['regen_reg_rate'] /= lr
 
     @torch.no_grad()
     def step(
@@ -61,23 +70,13 @@ class AdamAtan2(Optimizer):
         for group in self.param_groups:
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, regen_rate, cautious_factor, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_factor'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
-
-                # maybe decoupled weight decay
-
-                if self.decoupled_wd:
-                    wd /= init_lr
-
-                # weight decay
-
-                if wd > 0.:
-                    p.mul_(1. - lr * wd)
+                grad, lr, wd, regen_rate, cautious_wd, cautious_factor, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_wd'], group['cautious_factor'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
 
                 # regenerative regularization from Kumar et al. https://arxiv.org/abs/2308.11958
 
                 if regen_rate > 0. and 'param_init' in state:
                     param_init = state['param_init']
-                    p.lerp_(param_init, lr / init_lr * regen_rate)
+                    p.lerp_(param_init, lr * regen_rate)
 
                 # init state if needed
 
@@ -118,6 +117,16 @@ class AdamAtan2(Optimizer):
                     align_mask = (update * grad) > 0
                     scale = torch.where(align_mask, torch.ones_like(grad), cautious_factor)
                     update *= (scale / scale.mean().clamp(min = 1e-5))
+
+                # maybe weight decay
+
+                if wd > 0.:
+                    # maybe cautious
+                    # https://arxiv.org/abs/2510.12402
+
+                    wd_mask = (update * p > 0).float() if cautious_wd else 1.
+
+                    p.mul_(1. - lr * wd * wd_mask)
 
                 # update parameters
 
