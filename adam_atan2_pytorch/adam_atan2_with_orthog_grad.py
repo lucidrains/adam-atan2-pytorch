@@ -13,20 +13,27 @@ def exists(val):
 
 # tensor helpers
 
-def orthog_proj(x, y):
+def orthog_proj(x, y, double_precision = False):
     assert x.shape == y.shape
     shape = x.shape
 
     x, y = x.flatten(), y.flatten()
 
-    dtype = x.dtype
-    x, y = x.double(), y.double()
+    if double_precision:
+        dtype = x.dtype
+        x, y = x.double(), y.double()
+
     unit = F.normalize(y, dim = -1)
 
     parallel = (x * unit).sum(dim = -1, keepdim = True) * unit
     orthogonal = x - parallel
 
-    return orthogonal.reshape(*shape).to(dtype)
+    out = orthogonal.reshape(*shape)
+
+    if double_precision:
+        out = out.to(dtype)
+
+    return out
 
 # class
 
@@ -40,6 +47,7 @@ class AdamAtan2(Optimizer):
         regen_reg_rate = 0.,
         orig_grad_ema_beta = 0.9,
         orthog_grad = True,
+        orthog_proj_double_precision = True,
         decoupled_wd = False,
         cautious_wd = False,
         cautious_factor = 1., # set to 0. for zeroing out any updates not in same direction as gradient as in https://arxiv.org/abs/2411.16085
@@ -65,6 +73,7 @@ class AdamAtan2(Optimizer):
             regen_reg_rate = regen_reg_rate,
             orthog_grad = orthog_grad,
             orig_grad_ema_beta = orig_grad_ema_beta,
+            orthog_proj_double_precision = orthog_proj_double_precision,
             cautious_wd = cautious_wd,
             cautious_factor = cautious_factor
         )
@@ -92,7 +101,7 @@ class AdamAtan2(Optimizer):
         for group in self.param_groups:
             for p in filter(lambda p: exists(p.grad), group['params']):
 
-                grad, lr, wd, regen_rate, orthog_grad, orig_grad_ema_beta, cautious_wd, cautious_factor, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['orthog_grad'], group['orig_grad_ema_beta'], group['cautious_wd'], group['cautious_factor'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
+                grad, lr, wd, regen_rate, orthog_grad, orig_grad_ema_beta, orthog_proj_double_precision, cautious_wd, cautious_factor, beta1, beta2, a, b, state, init_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['orthog_grad'], group['orig_grad_ema_beta'], group['orthog_proj_double_precision'], group['cautious_wd'], group['cautious_factor'], *group['betas'], group['a'], group['b'], self.state[p], self._init_lr
 
                 # regenerative regularization from Kumar et al. https://arxiv.org/abs/2308.11958
 
@@ -125,7 +134,7 @@ class AdamAtan2(Optimizer):
                 # https://arxiv.org/abs/2504.01961
 
                 if orthog_grad:
-                    orthog = orthog_proj(grad, orig_grad)
+                    orthog = orthog_proj(grad, orig_grad, double_precision = orthog_proj_double_precision)
                     orig_grad.lerp_(grad, 1. - orig_grad_ema_beta)
                     grad = orthog
 
