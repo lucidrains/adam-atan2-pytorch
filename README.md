@@ -135,3 +135,15 @@ for _ in range(100):
     url     = {https://arxiv.org/abs/2505.16932},
 }
 ```
+
+```bibtex
+@misc{han2025learningstreamingvideoorthogonal,
+    title   = {Learning from Streaming Video with Orthogonal Gradients},
+    author  = {Tengda Han and Dilara Gokay and Joseph Heyward and Chuhan Zhang and Daniel Zoran and Viorica Pătrăucean and João Carreira and Dima Damen and Andrew Zisserman},
+    year    = {2025},
+    eprint  = {2504.01961},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.CV},
+    url     = {https://arxiv.org/abs/2504.01961},
+}
+```
