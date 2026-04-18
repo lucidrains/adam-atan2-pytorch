@@ -87,6 +87,17 @@ class AdamAtan2(Optimizer):
                 group['weight_decay'] /= lr
                 group['regen_reg_rate'] /= lr
 
+    # resetting the ema of the original grad, say at the boundary of a new video or trajectory, or could even be determined by the uncertainty of some predictive module
+
+    @torch.no_grad()
+    def reset_(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                if 'orig_grad' in state:
+                    state['orig_grad'].zero_()
+
     @torch.no_grad()
     def step(
         self,
