@@ -90,18 +90,28 @@ class AdamAtan2(Optimizer):
     # resetting the ema of the original grad, say at the boundary of a new video or trajectory, or could even be determined by the uncertainty of some predictive module
 
     @torch.no_grad()
-    def reset_(self):
+    def reset_(
+        self,
+        key = None
+    ):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
 
-                if 'orig_grad' in state:
-                    state['orig_grad'].zero_()
+                if 'grad_emas' not in state:
+                    continue
+
+                if not exists(key):
+                    state['grad_emas'].clear()
+                elif key in state['grad_emas']:
+                    state['grad_emas'][key].zero_()
 
     @torch.no_grad()
     def step(
         self,
-        closure: Callable | None = None
+        closure: Callable | None = None,
+        store_grad_key: str | None = 'orig_grad',
+        orthog_against_key: str | None = 'orig_grad'
     ):
 
         loss = None
@@ -127,27 +137,35 @@ class AdamAtan2(Optimizer):
 
                     state['exp_avg'] = torch.zeros_like(grad)
                     state['exp_avg_sq'] = torch.zeros_like(grad)
+                    state['grad_emas'] = dict()
 
                     if regen_rate > 0.:
                         state['param_init'] = p.clone()
 
-                    # original gradient for projection
-
-                    state['orig_grad'] = torch.zeros_like(grad) if orthog_grad else None
-
                 # get some of the states
 
-                orig_grad, exp_avg, exp_avg_sq, steps = state['orig_grad'], state['exp_avg'], state['exp_avg_sq'], state['steps']
+                exp_avg, exp_avg_sq, steps = state['exp_avg'], state['exp_avg_sq'], state['steps']
 
                 steps += 1
 
-                # orthogonal gradients for decorrelating successive gradient updates - for learning on temporal streams
-                # https://arxiv.org/abs/2504.01961
+                # orthogonal gradients for decorrelating successive gradient updates
+                # e.g. for learning on temporal streams (https://arxiv.org/abs/2504.01961)
+                # or auxiliary RL losses to prevent clashing between representation learning and policy gradients
 
                 if orthog_grad:
-                    orthog = orthog_proj(grad, orig_grad, double_precision = orthog_proj_double_precision)
-                    orig_grad.lerp_(grad, 1. - orig_grad_ema_beta)
-                    grad = orthog
+                    new_grad = grad
+                    grad_emas = state['grad_emas']
+
+                    if exists(orthog_against_key) and orthog_against_key in grad_emas:
+                        new_grad = orthog_proj(grad, grad_emas[orthog_against_key], double_precision = orthog_proj_double_precision)
+
+                    if exists(store_grad_key):
+                        if store_grad_key not in grad_emas:
+                            grad_emas[store_grad_key] = torch.zeros_like(grad)
+
+                        grad_emas[store_grad_key].lerp_(grad, 1. - orig_grad_ema_beta)
+
+                    grad = new_grad
 
                 # bias corrections
 
