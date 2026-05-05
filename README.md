@@ -147,3 +147,13 @@ for _ in range(100):
     url     = {https://arxiv.org/abs/2504.01961},
 }
 ```
+
+```bibtex
+@article{volchkov2026cliptogrok,
+    title   = {Clip to Grok: Weight Norm Clipping for Accelerated Generalization},
+    author  = {Volchkov, Vladimir and Rivlin, Aviad},
+    year    = {2026},
+    journal = {arXiv preprint},
+    note    = {Implementation available at \url{https://github.com/NiftyliuS/cliptogrok}}
+}
+```
