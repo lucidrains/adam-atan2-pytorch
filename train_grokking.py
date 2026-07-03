@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.9"
 # dependencies = [
-#     "adam-atan2-pytorch>=0.3.4",
+#     "adam-atan2-pytorch>=0.3.5",
 #     "tqdm",
 #     "x-transformers",
 # ]

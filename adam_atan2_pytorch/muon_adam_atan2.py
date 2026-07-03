@@ -91,6 +91,8 @@ class MuonAdamAtan2(Optimizer):
 
         beta1, beta2 = betas
 
+        self.muon_bypass_update_fn = muon_bypass_update_fn
+
         defaults = dict(
             lr = lr,
             beta1 = beta1,
@@ -105,7 +107,6 @@ class MuonAdamAtan2(Optimizer):
             muon_newton_schulz5_coefs = muon_newton_schulz5_coefs,
             muon_eps = muon_eps,
             muon_rms_factor = muon_rms_factor,
-            muon_bypass_update_fn = muon_bypass_update_fn
         )
 
         if remove_muon_params_from_params:
@@ -203,7 +204,8 @@ class MuonAdamAtan2(Optimizer):
                     # maybe cautious update - algorithm 2 in https://arxiv.org/abs/2411.16085
                 else:
 
-                    muon_steps, muon_coefs, muon_eps, muon_rms_factor, muon_bypass_update_fn = group['muon_steps'], group['muon_newton_schulz5_coefs'], group['muon_eps'], group['muon_rms_factor'], group['muon_bypass_update_fn']
+                    muon_steps, muon_coefs, muon_eps, muon_rms_factor = group['muon_steps'], group['muon_newton_schulz5_coefs'], group['muon_eps'], group['muon_rms_factor']
+                    muon_bypass_update_fn = group.get('muon_bypass_update_fn', self.muon_bypass_update_fn)
 
                     # Muon from Keller Jordan
                     # https://kellerjordan.github.io/posts/muon/

@@ -122,6 +122,8 @@ class PolarAdamAtan2(Optimizer):
 
         beta1, beta2 = betas
 
+        self.polar_bypass_update_fn = polar_bypass_update_fn
+
         defaults = dict(
             lr = lr,
             beta1 = beta1,
@@ -137,7 +139,6 @@ class PolarAdamAtan2(Optimizer):
             polar_eps = polar_eps,
             polar_rms_factor = polar_rms_factor,
             polar_cast_bfloat16 = polar_cast_bfloat16,
-            polar_bypass_update_fn = polar_bypass_update_fn
         )
 
         if remove_polar_params_from_params:
@@ -235,7 +236,8 @@ class PolarAdamAtan2(Optimizer):
                     # maybe cautious update - algorithm 2 in https://arxiv.org/abs/2411.16085
                 else:
 
-                    polar_steps, polar_coefs, polar_eps, polar_rms_factor, polar_cast_bfloat16, polar_bypass_update_fn = group['polar_steps'], group['polar_express_coefs'], group['polar_eps'], group['polar_rms_factor'], group['polar_cast_bfloat16'], group['polar_bypass_update_fn']
+                    polar_steps, polar_coefs, polar_eps, polar_rms_factor, polar_cast_bfloat16 = group['polar_steps'], group['polar_express_coefs'], group['polar_eps'], group['polar_rms_factor'], group['polar_cast_bfloat16']
+                    polar_bypass_update_fn = group.get('polar_bypass_update_fn', self.polar_bypass_update_fn)
 
                     # Polar Express from Amsel et al.
                     # https://arxiv.org/abs/2505.14387

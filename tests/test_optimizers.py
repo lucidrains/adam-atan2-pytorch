@@ -42,3 +42,22 @@ def test_reset_emas():
     # test reset all
     opt.reset_()
     assert len(opt_state['grad_emas']) == 0
+
+def test_muon_adam_atan2_state_dict():
+    from adam_atan2_pytorch.muon_adam_atan2 import MuonAdamAtan2
+    import io
+
+    model = nn.Linear(10, 2)
+    opt = MuonAdamAtan2(list(model.parameters()), list(model.parameters()), lr=1e-3)
+
+    model(torch.randn(4, 10)).sum().backward()
+    opt.step()
+
+    buffer = io.BytesIO()
+    torch.save(opt.state_dict(), buffer)
+    buffer.seek(0)
+
+    loaded_sd = torch.load(buffer, weights_only=True)
+
+    opt2 = MuonAdamAtan2(list(model.parameters()), list(model.parameters()), lr=1e-3)
+    opt2.load_state_dict(loaded_sd)
