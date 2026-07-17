@@ -104,14 +104,6 @@ class AdoptAtan2(Optimizer):
                     state['steps'] += 1
                     continue
 
-                # calculate m
-
-                grad_sq = grad * grad
-
-                update = grad.atan2(b * v.sqrt())
-
-                m.lerp_(update, 1. - beta1)
-
                 # maybe cautious update - algorithm 2 in https://arxiv.org/abs/2411.16085
 
                 scale = 1.
@@ -120,6 +112,14 @@ class AdoptAtan2(Optimizer):
                     align_mask = (m * grad) > 0
                     scale = torch.where(align_mask, torch.ones_like(grad), cautious_factor)
                     scale /= scale.mean().clamp(min = 1e-5)
+
+                # calculate m
+
+                grad_sq = grad * grad
+
+                update = grad.atan2(b * v.sqrt())
+
+                m.lerp_(update, 1. - beta1)
 
                 # then update parameters
 
