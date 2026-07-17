@@ -151,7 +151,7 @@ class AdamAtan2ClipGrok(Optimizer):
                 p.add_(update, alpha = -lr * a)
 
                 # clip to grok - Volchkov et al. from Clip to Grok
-                
+
                 if clip_to_grok and p.dim() >= 2:
                     p.data.copy_(soft_clip_max_norm(p.data, max_norm = clip_to_grok_max_norm, dim = -1))
 

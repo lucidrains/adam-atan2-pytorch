@@ -82,6 +82,9 @@ class AdamAtan2(Optimizer):
 
             has_weight_decay = wd > 0
 
+            if self.decoupled_wd and has_weight_decay:
+                wd /= init_lr
+
             has_regenerative_reg = regen_rate > 0
 
             # accumulate List[Tensor] for foreach inplace updates
@@ -92,15 +95,12 @@ class AdamAtan2(Optimizer):
             grad_squared = []
             exp_avgs = []
             exp_avg_sqs = []
+            bias_correct1 = []
+            bias_correct2 = []
 
             for p in filter(lambda p: exists(p.grad), group['params']):
 
                 grad, state = p.grad, self.state[p]
-
-                # maybe decoupled weight decay
-
-                if self.decoupled_wd and has_weight_decay:
-                    wd /= init_lr
 
                 # init state if needed
 
@@ -118,8 +118,8 @@ class AdamAtan2(Optimizer):
 
                 # bias corrections
 
-                bias_correct1 = 1. - beta1 ** steps
-                bias_correct2 = 1. - beta2 ** steps
+                bias_correct1.append(1. / (1. - beta1 ** steps))
+                bias_correct2.append(b * b / (1. - beta2 ** steps))
 
                 # append to list
 
@@ -156,9 +156,9 @@ class AdamAtan2(Optimizer):
 
             # calculate update atan2(exp_avg / bias_correct1, b * sqrt(exp_avg_sq / bias_correct2))
 
-            torch._foreach_mul_(updates, 1. / bias_correct1)
+            torch._foreach_mul_(updates, bias_correct1)
 
-            torch._foreach_mul_(den, b * b / bias_correct2)
+            torch._foreach_mul_(den, bias_correct2)
             torch._foreach_sqrt_(den)
 
             self._foreach_atan2_(updates, den)

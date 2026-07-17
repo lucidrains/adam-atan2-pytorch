@@ -100,10 +100,10 @@ class AdamAtan2(Optimizer):
                         # initial parameters sorted for efficiency
 
                         shape = p.shape
-                        p = p.flatten().sort(dim = -1).values
-                        p = p.reshape(shape)
+                        sorted_p = p.flatten().sort(dim = -1).values
+                        sorted_p = sorted_p.reshape(shape)
 
-                        state['param_init'] = p.clone()
+                        state['param_init'] = sorted_p.clone()
 
                 # get some of the states
 

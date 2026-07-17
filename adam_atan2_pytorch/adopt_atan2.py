@@ -117,7 +117,7 @@ class AdoptAtan2(Optimizer):
                 scale = 1.
 
                 if cautious_factor < 1.:
-                    align_mask = (update * grad) > 0
+                    align_mask = (m * grad) > 0
                     scale = torch.where(align_mask, torch.ones_like(grad), cautious_factor)
                     scale /= scale.mean().clamp(min = 1e-5)
 

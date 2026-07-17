@@ -6,7 +6,7 @@ from adam_atan2_pytorch.adam_atan2_with_orthog_grad import AdamAtan2
 def test_rl_aux_orthog():
     model = nn.Linear(10, 2)
     opt = AdamAtan2(model.parameters(), lr = 1e-3, orthog_grad = True)
-    
+
     state = torch.randn(4, 10)
 
     opt.zero_grad()
@@ -15,13 +15,13 @@ def test_rl_aux_orthog():
 
     opt.zero_grad()
     (model(state) ** 2).sum().backward()
-    
+
     opt.step(store_grad_key = None, orthog_against_key = 'rl_grad')
 
 def test_reset_emas():
     model = nn.Linear(10, 2)
     opt = AdamAtan2(model.parameters(), lr = 1e-3, orthog_grad = True)
-    
+
     state = torch.randn(4, 10)
 
     opt.zero_grad()
