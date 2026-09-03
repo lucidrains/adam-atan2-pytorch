@@ -51,6 +51,22 @@ def newtonschulz5(
 
     return t
 
+# normuon related
+# https://arxiv.org/abs/2510.05491
+
+def neuronwise_normalize(t, exp_avg_sq_row, beta2, eps):
+    # per neuron (row) second moment of the orthogonalized update is divided out,
+    # keeping the overall update norm the same so no neuron's learning rate is altered
+
+    update_norm = t.norm(dim = (-2, -1), keepdim = True)
+
+    row_sq_mean = t.square().mean(dim = -1, keepdim = True)
+    exp_avg_sq_row.lerp_(row_sq_mean, 1. - beta2)
+
+    t = t / (exp_avg_sq_row.sqrt() + eps)
+
+    return t * (update_norm / t.norm(dim = (-2, -1), keepdim = True).clamp(min = eps))
+
 # class
 
 class MuonAdamAtan2(Optimizer):
@@ -70,8 +86,11 @@ class MuonAdamAtan2(Optimizer):
         muon_rms_factor = 0.2,
         muon_steps = 5,
         muon_beta1 = 0.95,
+        muon_beta2 = 0.95, # per neuron second moment of the orthogonalized update - normuon only
         muon_newton_schulz5_coefs = (3.4445, -4.7750, 2.0315),
         muon_eps = 1e-7,
+        use_normuon = False, # neuron-wise normalize the orthogonalized muon update, as in https://arxiv.org/abs/2510.05491
+        normuon_eps = 1e-10,
         muon_bypass_update_fn: Callable[[int], bool] | None = lambda ndim: ndim < 2 or ndim > 3,
         remove_muon_params_from_params = True
     ):
@@ -106,7 +125,10 @@ class MuonAdamAtan2(Optimizer):
             muon_steps = muon_steps,
             muon_newton_schulz5_coefs = muon_newton_schulz5_coefs,
             muon_eps = muon_eps,
+            muon_beta2 = muon_beta2,
             muon_rms_factor = muon_rms_factor,
+            use_normuon = False,
+            normuon_eps = normuon_eps,
         )
 
         if remove_muon_params_from_params:
@@ -114,7 +136,7 @@ class MuonAdamAtan2(Optimizer):
 
         param_groups = [
             dict(params = params, lr = lr),
-            dict(params = muon_params, lr = muon_lr, beta1 = muon_beta1, rms_factor = muon_rms_factor, use_muon = True)
+            dict(params = muon_params, lr = muon_lr, beta1 = muon_beta1, rms_factor = muon_rms_factor, use_muon = True, use_normuon = use_normuon)
         ]
 
         super().__init__(param_groups, defaults)
@@ -135,6 +157,8 @@ class MuonAdamAtan2(Optimizer):
             for p in filter(lambda p: exists(p.grad), group['params']):
 
                 use_muon = group['use_muon']
+
+                use_normuon = group['use_normuon']
 
                 grad, lr, wd, regen_rate, cautious_factor, beta1, beta2, a, b, state, init_lr, init_muon_lr = p.grad, group['lr'], group['weight_decay'], group['regen_reg_rate'], group['cautious_factor'], group['beta1'], group['beta2'], group['a'], group['b'], self.state[p], self._init_lr, self._init_muon_lr
 
@@ -210,6 +234,8 @@ class MuonAdamAtan2(Optimizer):
                     # Muon from Keller Jordan
                     # https://kellerjordan.github.io/posts/muon/
 
+                    bypass_update = exists(muon_bypass_update_fn) and muon_bypass_update_fn(exp_avg.ndim)
+
                     update = newtonschulz5(
                         exp_avg,
                         steps = muon_steps,
@@ -217,6 +243,21 @@ class MuonAdamAtan2(Optimizer):
                         eps = muon_eps,
                         bypass_update_fn = muon_bypass_update_fn
                     )
+
+                    # Normuon from Li et al.
+
+                    if use_normuon and not bypass_update:
+                        exp_avg_sq_row = state.get('exp_avg_sq_orthog_row')
+
+                        if not exists(exp_avg_sq_row):
+                            exp_avg_sq_row = state['exp_avg_sq_orthog_row'] = torch.zeros_like(update[..., :1])
+
+                        update = neuronwise_normalize(
+                            update,
+                            exp_avg_sq_row,
+                            beta2 = group['muon_beta2'],
+                            eps = group['normuon_eps']
+                        )
 
                     # incorporate the match adam RMS from Kimi team
                     # https://kexue.fm/archives/11267

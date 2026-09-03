@@ -61,3 +61,14 @@ def test_muon_adam_atan2_state_dict():
 
     opt2 = MuonAdamAtan2(list(model.parameters()), list(model.parameters()), lr=1e-3)
     opt2.load_state_dict(loaded_sd)
+
+def test_muon_adam_atan2_normuon():
+    from adam_atan2_pytorch.muon_adam_atan2 import MuonAdamAtan2
+
+    model = nn.Linear(8, 128)
+    opt = MuonAdamAtan2([model.weight], [model.bias], lr=1e-3, use_normuon=True)
+
+    (model(torch.randn(4, 8)) ** 2).sum().backward()
+    opt.step()
+
+    assert opt.state[model.weight]['exp_avg_sq_orthog_row'].shape == (128, 1)
