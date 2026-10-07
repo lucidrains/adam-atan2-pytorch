@@ -131,8 +131,11 @@ class MuonAdamAtan2(Optimizer):
             normuon_eps = normuon_eps,
         )
 
+        muon_params = list(muon_params)
+
         if remove_muon_params_from_params:
-            params = list(set(params) - set(muon_params))
+            muon_param_set = set(muon_params)
+            params = list(dict.fromkeys(p for p in params if p not in muon_param_set))
 
         param_groups = [
             dict(params = params, lr = lr),
